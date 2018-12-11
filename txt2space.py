@@ -49,7 +49,7 @@ class Space():
     def to_csr_matrix(self):
         
         import scipy.sparse.to_csr_matrix as csr
-        retun csr(self.matrix_space)
+        return csr(self.matrix_space)
 
     def m_vector(self, word, en_=True):
 

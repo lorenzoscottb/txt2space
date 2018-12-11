@@ -169,6 +169,8 @@ def _plot_with_labels(low_dim_embs, labels, path, size):
         plt.scatter(x, y)
         plt.annotate(label, xy=(x, y), xytext=(5, 2), textcoords='offset points', ha='right',
                      va='bottom')
+    plt.show()
+
     if path is not None:
         figure.savefig(path)
         plt.close(figure)

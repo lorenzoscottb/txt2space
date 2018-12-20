@@ -8,7 +8,7 @@ Supported functions include:
 - automatic vectors addition
 - space visualization (through t-sne)
 
-## Basic instruction 
+## Basic instructions 
 
 Leave first line blank/for space information, as it will be discarded.
 Vectors have to be stored in the word - vector format, e.g.

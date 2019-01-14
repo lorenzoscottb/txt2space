@@ -22,8 +22,8 @@ class Space():
         self.vocabulary = {}
         self.matrix_space = None
 
-    def key_by_value(self, mydict, value):
-        return list(mydict.keys())[list(mydict.values()).index(value)]
+    def key_by_value(self, value):
+        return list(self.vocabulary.keys())[list(self.vocabulary.values()).index(value)]
 
     def vulic_lear_txt2space(self):
 

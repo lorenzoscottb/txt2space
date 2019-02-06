@@ -2,11 +2,11 @@
 
 Load, explore and run basic operation on continuous (semantic) spaces from .txt format
 
-Supported functions include: 
-- (cosine) similarity
+Some supported functions and test: 
+- cosine similarity
 - knn extraction
-- automatic vectors addition
-- space visualization (through t-sne)
+- [Mitchell & Lapata](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1551-6709.2010.01106.x) 2010 test 
+- space visualization (through [t-sne](https://lvdmaaten.github.io/tsne/))
 
 ## Basic instructions 
 

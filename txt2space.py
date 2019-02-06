@@ -22,8 +22,8 @@ class Space():
         self.vocabulary = {}
         self.matrix_space = None
 
-    def key_by_value(self, value):
-        return list(self.vocabulary.keys())[list(self.vocabulary.values()).index(value)]
+    def key_by_value(self, mydict, value):
+        return list(mydict.keys())[list(mydict.values()).index(value)]
 
     def vulic_lear_txt2space(self):
 
@@ -36,14 +36,17 @@ class Space():
             self.vocabulary[line.split(' ', 1)[0]] = index
             self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
 
-    def txt2space(self, dir, x, y):
+    def txt2space(self, dir, x, y, en_remove=False):
 
         self.matrix_space = np.ndarray(shape=(x, y))
 
         file = open(dir, 'r')
         line = file.readline()
         for index, line in enumerate(file):
-            self.vocabulary[line.split(' ', 1)[0]] = index
+            if en_remove:
+                self.vocabulary[line.split(' ', 1)[0].replace('en_', '')] = index
+            else:
+                self.vocabulary[line.split(' ', 1)[0]] = index
             self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
 
     def to_csr_matrix(self):
@@ -51,7 +54,7 @@ class Space():
         import scipy.sparse.to_csr_matrix as csr
         return csr(self.matrix_space)
 
-    def m_vector(self, word, en_=True):
+    def vector(self, word, en_=True):
 
         """
         extract vector for a given 'word'
@@ -162,11 +165,14 @@ class Space():
         low_dim_embs = tsne.fit_transform(embeddings[:word_count, :])
         labels = list(self.vocabulary.keys())[:word_count]
         return _plot_with_labels(low_dim_embs, labels, path, size)
-    
-        def ml_10_evaluation(self, test_phrase='adjectivenouns'):
+
+    def ml_10_evaluation(self, test_phrase='adjectivenouns'):
 
         from scipy.stats.stats import spearmanr
         import pandas as pd
+        
+        # can be found in repo
+        ml_10 = 'path/to/ml_10.csv'
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -189,7 +195,6 @@ class Space():
                 print('%s:something thing whent wrong' % e[3:7])
 
         print(' vectors ', spearmanr(ml_values, cs_values))
-
 
 def _plot_with_labels(low_dim_embs, labels, path, size):
 

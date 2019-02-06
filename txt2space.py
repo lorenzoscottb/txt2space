@@ -162,6 +162,33 @@ class Space():
         low_dim_embs = tsne.fit_transform(embeddings[:word_count, :])
         labels = list(self.vocabulary.keys())[:word_count]
         return _plot_with_labels(low_dim_embs, labels, path, size)
+    
+        def ml_10_evaluation(self, test_phrase='adjectivenouns'):
+
+        from scipy.stats.stats import spearmanr
+        import pandas as pd
+
+        df = pd.read_csv(ml_10)
+        ml_values = []
+        cs_values = []
+
+        if test_phrase == 'all':
+            test_phrase = list(set(df['type']))
+
+        for index, e in enumerate(df.values):
+            if  test_phrase not in e[1]:
+                continue
+            try:
+                c_1  = self.vector(vectors[e[3]]) + self.vector(vectors[e[4]])
+                c_2  = self.vector(vectors[e[5]]) + self.vector(vectors[e[6]])
+
+                ml_values.append(int(e[-1]))
+                cs_values.append(self.cosine_similarity(c_1, c_2))
+
+            except:
+                print('%s:something thing whent wrong' % e[3:7])
+
+        print(' vectors ', spearmanr(ml_values, cs_values))
 
 
 def _plot_with_labels(low_dim_embs, labels, path, size):

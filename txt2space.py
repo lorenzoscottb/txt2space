@@ -166,13 +166,12 @@ class Space():
         labels = list(self.vocabulary.keys())[:word_count]
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
-    def ml_10_evaluation(self, test_phrase='adjectivenouns'):
+    def ml_10_evaluation(self, test_phrase='adjectivenouns', en=False):
 
         from scipy.stats.stats import spearmanr
         import pandas as pd
-        
-        # can be found in repo
-        ml_10 = 'path/to/ml_10.csv'
+
+        ml_10 = '/Users/lb540/Documents/corpora/ml_10.csv'
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -182,14 +181,15 @@ class Space():
             test_phrase = list(set(df['type']))
 
         for index, e in enumerate(df.values):
-            if  test_phrase not in e[1]:
+            if  e[1] not in test_phrase:
                 continue
             try:
-                c_1  = self.vector(vectors[e[3]]) + self.vector(vectors[e[4]])
-                c_2  = self.vector(vectors[e[5]]) + self.vector(vectors[e[6]])
-
+                c_1  = self.vector(e[3], en_=en) + self.vector(e[4], en_=en)
+                c_2  = self.vector(e[5], en_=en) + self.vector(e[6], en_=en)
+    
                 ml_values.append(int(e[-1]))
                 cs_values.append(self.cosine_similarity(c_1, c_2))
+                print('%s:collected' % e[3:7])
 
             except:
                 print('%s:something thing whent wrong' % e[3:7])

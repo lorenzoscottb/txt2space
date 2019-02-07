@@ -151,7 +151,8 @@ class Space():
 
         return final_knn
 
-    def generate_tsne(self, path=None, size=(10, 7), word_count=1000, embeddings=None):
+    def generate_tsne(self, path=None, size=(10, 7), word_count=1000, 
+                      embeddings=None, plot=False):
 
         """
         adapted from github repo GradySimon/tensorflow-glove,
@@ -166,7 +167,7 @@ class Space():
         labels = list(self.vocabulary.keys())[:word_count]
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
-    def ml_10_evaluation(self, test_phrase='adjectivenouns', en=False):
+    def ml_10_evaluation(self, test_phrase='adjectivenouns', en=False, plot=False):
 
         from scipy.stats.stats import spearmanr
         import pandas as pd
@@ -186,7 +187,7 @@ class Space():
             try:
                 c_1  = self.vector(e[3], en_=en) + self.vector(e[4], en_=en)
                 c_2  = self.vector(e[5], en_=en) + self.vector(e[6], en_=en)
-    
+
                 ml_values.append(int(e[-1]))
                 cs_values.append(self.cosine_similarity(c_1, c_2))
                 print('%s:collected' % e[3:7])
@@ -195,6 +196,14 @@ class Space():
                 print('%s:something thing whent wrong' % e[3:7])
 
         print(' vectors ', spearmanr(ml_values, cs_values))
+
+        if plot:
+
+            import matplotlib.pyplot as plt
+            import seaborn as sns
+
+            sns.set(style="whitegrid")
+            plt.scatter(ml_values,cs_values)
 
 def _plot_with_labels(low_dim_embs, labels, path, size):
 

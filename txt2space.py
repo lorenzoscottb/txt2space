@@ -22,8 +22,8 @@ class Space():
         self.vocabulary = {}
         self.matrix_space = None
 
-    def key_by_value(self, mydict, value):
-        return list(mydict.keys())[list(mydict.values()).index(value)]
+    def key_by_value(self, value):
+        return list(self.vocabulary.keys())[list(self.vocabulary.values()).index(value)]
 
     def vulic_lear_txt2space(self):
 
@@ -36,12 +36,18 @@ class Space():
             self.vocabulary[line.split(' ', 1)[0]] = index
             self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
 
-    def txt2space(self, dir, x, y, en_remove=False):
+    def txt2space(self, dir, x=None, y=None, en_remove=False, dim_in_file=False):
 
-        self.matrix_space = np.ndarray(shape=(x, y))
 
         file = open(dir, 'r')
         line = file.readline()
+        if dim_in_file:
+            info = line.split()
+            x = int(info[1])+1
+            y = int(info[-1])
+
+        self.matrix_space = np.ndarray(shape=(x, y))
+
         for index, line in enumerate(file):
             if en_remove:
                 self.vocabulary[line.split(' ', 1)[0].replace('en_', '')] = index
@@ -83,7 +89,7 @@ class Space():
 
         for word in words:
             if word not in en_stop:
-                v += self.m_vector(word.strip('.1'))  # pandas does not like repetitions...
+                v += self.vector(word.strip('.1'))  # pandas does not like repetitions...
 
         return v
 
@@ -92,7 +98,7 @@ class Space():
         from numpy.linalg import norm as nm
 
         if type(vector) == str:
-            return nm(self.m_vector(vector))
+            return nm(self.vector(vector))
 
         else:
             return nm(vector)
@@ -102,9 +108,9 @@ class Space():
         "compute cosine similarity of v1 to v2: (v1 dot v2)/{||v1||*||v2||)"
 
         if type(v1) == str:
-            v1 = self.m_vector(v1)
+            v1 = self.vector(v1)
         if type(v2) == str:
-            v2 = self.m_vector(v2)
+            v2 = self.vector(v2)
 
         sumxx, sumxy, sumyy = 0, 0, 0
         for i in range(len(v1)):
@@ -151,7 +157,7 @@ class Space():
 
         return final_knn
 
-    def generate_tsne(self, path=None, size=(10, 7), word_count=1000, 
+    def generate_tsne(self, path=None, size=(10, 7), word_count=1000,
                       embeddings=None, plot=False):
 
         """
@@ -172,7 +178,7 @@ class Space():
         from scipy.stats.stats import spearmanr
         import pandas as pd
 
-        ml_10 = '/Users/lb540/Documents/corpora/ml_10.csv'
+        ml_10 = '/Users/lb540/Documents/corpora/mitchel-lapata/ml_10.csv'
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -204,6 +210,33 @@ class Space():
 
             sns.set(style="whitegrid")
             plt.scatter(ml_values,cs_values)
+
+    def simlex_evaluation(self,  en=False, plot=False):
+
+        from scipy.stats.stats import spearmanr
+        import pandas as pd
+
+        simlex = '/Users/lb540/Documents/corpora/similarity/SimLex-en.csv'
+
+        df = pd.read_csv(simlex)
+        sim_values = []
+        cs_values = []
+
+        for index, e in enumerate(df.values):
+            print(e)
+            sim_values.append(int(e[-1]))
+            cs_values.append(self.cosine_similarity(e[0], e[1]))
+            print('%s:evaluated' % e[0:2])
+
+        print(' vectors ', spearmanr(sivalues, cs_values))
+
+        if plot:
+
+            import matplotlib.pyplot as plt
+            import seaborn as sns
+
+            sns.set(style="whitegrid")
+            plt.scatter(sivalues,cs_values)
 
 def _plot_with_labels(low_dim_embs, labels, path, size):
 

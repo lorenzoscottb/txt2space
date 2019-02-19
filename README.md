@@ -22,6 +22,8 @@ Be sure there is no space between line start and word nor commas between numbers
 
 ### Basic Usage
 ```python
+from txt2space import Space
+
 txt_space = 'path/to/space.txt'
 space = Space()
 space.txt2space(amod, token=10000, dimensions=100, en_remove=True)

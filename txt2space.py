@@ -46,7 +46,7 @@ class Space():
             token = int(info[1])+1
             dimesion = int(info[-1])
 
-        self.matrix_space = np.ndarray(shape=(x, y))
+        self.matrix_space = np.ndarray(shape=(token, dimesion))
 
         for index, line in enumerate(file):
             if en_remove:

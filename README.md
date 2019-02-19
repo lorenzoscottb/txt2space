@@ -10,6 +10,7 @@ Some supported functions and test:
 
 ## Basic instructions 
 
+### File Format
 Leave first line blank/for space information, as it will be discarded.
 Vectors have to be stored in the word - vector format, e.g.
 
@@ -18,6 +19,24 @@ word -0.07512683  0.0956306   0.12752604 -0.21758722  0.04896387 -0.3884378 ...
 ``
 
 Be sure there is no space between line start and word nor commas between numbers.
+
+### Basic Usage
+
+``
+txt_space = 'path/to/space.txt'
+
+space = Space()
+space.txt2space(txt_space, token=10000, dimension=100)
+``
+
+Alternatively, if the first line of the file contains space dimension (#tokens, #dimensions)
+
+``
+txt_space = 'path/to/space.txt'
+
+space = Space()
+space.txt2space(txt_space, dim_in_file=True)
+``
 
 ### Requirments
  - numpy >= 1.15.4

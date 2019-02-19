@@ -36,15 +36,15 @@ class Space():
             self.vocabulary[line.split(' ', 1)[0]] = index
             self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
 
-    def txt2space(self, dir, x=None, y=None, en_remove=False, dim_in_file=False):
+    def txt2space(self, dir, token=None, dimesion=None, en_remove=False, dim_in_file=False):
 
 
         file = open(dir, 'r')
         line = file.readline()
         if dim_in_file:
             info = line.split()
-            x = int(info[1])+1
-            y = int(info[-1])
+            token = int(info[1])+1
+            dimesion = int(info[-1])
 
         self.matrix_space = np.ndarray(shape=(x, y))
 
@@ -54,7 +54,7 @@ class Space():
             else:
                 self.vocabulary[line.split(' ', 1)[0]] = index
             self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
-
+            
     def to_csr_matrix(self):
         
         import scipy.sparse.to_csr_matrix as csr

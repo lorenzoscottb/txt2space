@@ -26,7 +26,7 @@ txt_space = 'path/to/space.txt'
 space = Space()
 space.txt2space(amod, token=10000, dimensions=100, en_remove=True)
 ```
-Alternatively, if the first line of the file contains space dimension (#tokens, #dimensions)
+Alternatively, if the first line of the file contains space informations (#tokens, #dimensions)
 
 ```python
 space = Space()

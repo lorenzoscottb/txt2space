@@ -25,17 +25,6 @@ class Space():
     def key_by_value(self, value):
         return list(self.vocabulary.keys())[list(self.vocabulary.values()).index(value)]
 
-    def vulic_lear_txt2space(self):
-
-        file = open('/Users/lb540/Documents/corpora/vectors/lear_hyperlex.txt', 'r')
-
-        self.matrix_space = np.ndarray(shape=(183870, 300))  # (183870, 300)
-
-        line = file.readline()
-        for index, line in enumerate(file):
-            self.vocabulary[line.split(' ', 1)[0]] = index
-            self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
-
     def txt2space(self, dir, token=None, dimesion=None, en_remove=False, dim_in_file=False):
 
 
@@ -173,12 +162,13 @@ class Space():
         labels = list(self.vocabulary.keys())[:word_count]
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
-    def ml_10_evaluation(self, test_phrase='adjectivenouns', en=False, plot=False):
+    def ml_10_evaluation(self, test_phrase='adjectivenouns', en=False, plot=False
+                         ml_10 = 'path/to/ml_10.csv'):
 
         from scipy.stats.stats import spearmanr
         import pandas as pd
 
-        ml_10 = '/Users/lb540/Documents/corpora/mitchel-lapata/ml_10.csv'
+        
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -211,12 +201,11 @@ class Space():
             sns.set(style="whitegrid")
             plt.scatter(ml_values,cs_values)
 
-    def simlex_evaluation(self,  en=False, plot=False):
+    def simlex_evaluation(self,  en=False, plot=False
+                          simlex = 'path/to/SimLex-en.csv'):
 
         from scipy.stats.stats import spearmanr
         import pandas as pd
-
-        simlex = '/Users/lb540/Documents/corpora/similarity/SimLex-en.csv'
 
         df = pd.read_csv(simlex)
         sim_values = []

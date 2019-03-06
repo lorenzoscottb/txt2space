@@ -27,7 +27,7 @@ from txt2space import Space
 
 txt_space = 'path/to/space.txt'
 space = Space()
-space.txt2space(amod, token=10000, dimensions=100, en_remove=True)
+space.txt2space(txt_space, token=10000, dimensions=100, en_remove=True)
 ```
 Alternatively, if the first line of the file contains space informations (#tokens, #dimensions)
 

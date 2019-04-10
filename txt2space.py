@@ -36,7 +36,7 @@ class Space():
             self.vocabulary[line.split(' ', 1)[0]] = index
             self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
 
-    def txt2space(self, dir, token=None, dimesion=None, en_remove=False, dim_in_file=False):
+    def txt2space(self, dir, token=None, dimension=None, en_remove=False, dim_in_file=False):
 
         file = open(dir, 'r')
         line = file.readline()
@@ -45,7 +45,7 @@ class Space():
             token = int(info[0])
             dimesion = int(info[1])
 
-        self.matrix_space = np.ndarray(shape=(token, dimesion))
+        self.matrix_space = np.ndarray(shape=(token, dimension))
 
         for index, line in enumerate(file):
             if en_remove:

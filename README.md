@@ -1,6 +1,6 @@
 # Txt2Space
 
-Load, explore and run basic operation on continuous (semantic) spaces from .txt format
+Load, explore and run basic operation on continuous (semantic) spaces saved in the txt format
 
 Some supported functions and test: 
 - cosine similarity

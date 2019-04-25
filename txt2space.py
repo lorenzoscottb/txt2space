@@ -4,14 +4,15 @@ __author__ = 'lb540'
 import numpy as np
 import nltk
 import math
+from scipy.stats.stats import spearmanr
+import pandas as pd
 from sklearn.neighbors import NearestNeighbors as NN
-
 
 class Space():
 
     """"
     WARNING: many txt spaces main interest of this class are in language_word format
-            there for some methods have the en_ parameter, you can set if to False
+            there for some methods have the plus_en parameter, you can set if to False
             if space's words are in en_word format but stimuli are not.
     """
 
@@ -36,7 +37,7 @@ class Space():
             self.vocabulary[line.split(' ', 1)[0]] = index
             self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
 
-    def txt2space(self, dir, token=None, dimension=None, en_remove=False, dim_in_file=False):
+    def txt2space(self, dir, token=None, dimension=None, en_remove=True, dim_in_file=False):
 
         file = open(dir, 'r')
         line = file.readline()
@@ -59,18 +60,18 @@ class Space():
         import scipy.sparse.to_csr_matrix as csr
         return csr(self.matrix_space)
 
-    def vector(self, word, en_=True):
+    def vector(self, word, plus_en=False):
 
         """
         extract vector for a given 'word'
         """
 
-        if not en_:
+        if plus_en:
             word = 'en_'+word
 
         return self.matrix_space[self.vocabulary[word]]
 
-    def multi_vec(self, words, en_=True):
+    def multi_vec(self, words, plus_en=False):
 
         """
         extract and summ mutiple vectors from a set of words
@@ -83,7 +84,7 @@ class Space():
             words = nltk.word_tokenize(words)
         v = np.zeros(self.matrix_space.shape[1], dtype=np.float32)
 
-        if not en_:
+        if plus_en:
             words = ['en_'+word for word in words]
 
         for word in words:
@@ -120,7 +121,7 @@ class Space():
         return sumxy/math.sqrt(sumxx*sumyy)    
 
     def extract_knn(self, word, algorithm='brute', n_nbrs=16,
-                    metric='cosine', return_distance=False, en_=True):
+                    metric='cosine', return_distance=False, plus_en=False):
 
         """
         word: single word string or array vector (for composed vectors)
@@ -133,7 +134,7 @@ class Space():
         nn = NN(algorithm=algorithm, n_neighbors=n_nbrs, metric=metric)
         nn.fit(space)
 
-        if not en_:
+        if plus_en:
             word = 'en_'+word
 
         if type(word) == str:
@@ -173,36 +174,32 @@ class Space():
         labels = list(self.vocabulary.keys())[:word_count]
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
-    def ml_10_evaluation(self, test_phrase='adjectivenouns', en=False, plot=False,
-    					 ml_10 = '/Users/lb540/Documents/corpora/similarity/mitchell-lapata/ml_10.csv'):
-
-        from scipy.stats.stats import spearmanr
-        import pandas as pd
-
-        
+    def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False,
+    					 ml_10='/tests/ml_10.csv'):
 
         df = pd.read_csv(ml_10)
         ml_values = []
         cs_values = []
-
+        c = 0
+        test_values = int(len(df.values)/3)
         if test_phrase == 'all':
             test_phrase = list(set(df['type']))
-
+            test_values = int(len(df.values))
         for index, e in enumerate(df.values):
             if  e[1] not in test_phrase:
                 continue
             try:
-                c_1  = self.vector(e[3], en_=en) + self.vector(e[4], en_=en)
-                c_2  = self.vector(e[5], en_=en) + self.vector(e[6], en_=en)
+                c_1  = self.vector(e[3], plus_en=plus_en) + self.vector(e[4], plus_en=plus_en)
+                c_2  = self.vector(e[5], plus_en=plus_en) + self.vector(e[6], plus_en=plus_en)
                 cs_values.append(self.cosine_similarity(c_1, c_2))
                 ml_values.append(int(e[-1]))
                 # print('%s:collected' % e[3:7])
-
-            except:
-                print('%s:something thing whent wrong' % e[3:7])
-
-        print(' vectors ', spearmanr(ml_values, cs_values))
-
+                c += 1
+            except Exception as e: 
+                print(e)
+                
+        print('testing {}, coverage {}/{}: {}'.format(test_phrase, c, test_values, 
+                                             spearmanr(ml_values, cs_values)))
         if plot:
 
             import matplotlib.pyplot as plt
@@ -212,12 +209,7 @@ class Space():
             plt.scatter(ml_values,cs_values)
 
     def simlex_evaluation(self,  en=False, plot=False,
-    					  simlex = '/Users/lb540/Documents/corpora/similarity/SimLex-en.csv'):
-
-        from scipy.stats.stats import spearmanr
-        import pandas as pd
-
-        
+    					  simlex='tests/SimLex-en.csv'):
 
         df = pd.read_csv(simlex)
         sim_values = []
@@ -226,7 +218,7 @@ class Space():
         for index, e in enumerate(df.values):
             sim_values.append(int(e[-1]))
             cs_values.append(self.cosine_similarity(e[0], e[1]))
-            print('%s:evaluated' % e[0:2])
+#             print('%s:evaluated' % e[0:2])
 
         print(' vectors ', spearmanr(sim_values, cs_values))
 
@@ -237,7 +229,51 @@ class Space():
 
             sns.set(style="whitegrid")
             plt.scatter(sim_values,cs_values)
+            
+    def MEN_evaluation(self, n=False, plot=False, 
+                       men='tests/MEN_dataset_natural_form_full.csv'):
+    
+        df = pd.read_csv(men)
+        sim_values = []
+        cs_values = []
 
+        for index, e in enumerate(df.values):
+            try:
+                cs_values.append(self.cosine_similarity(self.vector(e[0]), self.vector(e[1])))
+                sim_values.append(int(e[-1]))
+
+        #         print('%s:evaluated' % e[0:2])
+            except Exception as ex:
+                print(ex)
+
+        print('MEN(sim) test, coverage:',len(sim_values),'/',len(df.values),spearmanr(sim_values, cs_values))    
+        
+    def ws353_evaluation(self, datasets='agrred'):
+        
+        ws353_ag = '/tests/'\
+                    'wordsim353_sim_rel/wordsim353_agreed.csv'
+        ws353_gs = 'tests/wordsim353_sim_rel/'\
+                    'wordsim_similarity_goldstandard.csv'
+
+        if datasets != 'gold_standars':
+            ws353 = ws353_ag
+        else:    
+            ws353 = ws353_gs
+        cs_values = []
+        ws_values = []
+        ws_df = pd.read_csv(ws353)
+        for index, ws_e in enumerate(ws_df.values):
+            try:
+                cs_values.append(self.cosine_similarity(self.vector(ws_e[1]), 
+                                                        self.vector(ws_e[2])))
+                ws_values.append(int(ws_e[-1]))
+        #         print('%s:evaluated' % e[0:2])
+            except Exception as ex:
+                print(ex)
+
+        print('ws353', str(datasets),'test, coverage:',len(ws_values),'/',len(ws_df.values),spearmanr(ws_values, cs_values))
+        
+    
 def _plot_with_labels(low_dim_embs, labels, path, size):
 
     """

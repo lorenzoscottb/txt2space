@@ -174,8 +174,7 @@ class Space():
         labels = list(self.vocabulary.keys())[:word_count]
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
-    def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False,
-    					 ml_10='/tests/ml_10.csv'):
+    def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False, print_ex=False, ml_10='../tests/mitchell-lapata/ml_10.csv'):
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -196,8 +195,9 @@ class Space():
                 # print('%s:collected' % e[3:7])
                 c += 1
             except Exception as e: 
-                print(e)
-                
+                if print_ex:
+                    print(e)
+                    
         print('testing {}, coverage {}/{}: {}'.format(test_phrase, c, test_values, 
                                              spearmanr(ml_values, cs_values)))
         if plot:
@@ -208,8 +208,7 @@ class Space():
             sns.set(style="whitegrid")
             plt.scatter(ml_values,cs_values)
 
-    def simlex_evaluation(self,  en=False, plot=False,
-    					  simlex='tests/SimLex-en.csv'):
+    def simlex_evaluation(self,  en=False, plot=False, simlex='../tests/SimLex-en.csv'):
 
         df = pd.read_csv(simlex)
         sim_values = []
@@ -230,8 +229,7 @@ class Space():
             sns.set(style="whitegrid")
             plt.scatter(sim_values,cs_values)
             
-    def MEN_evaluation(self, n=False, plot=False, 
-                       men='tests/MEN_dataset_natural_form_full.csv'):
+    def MEN_evaluation(self, n=False, plot=False, print_ex=False, men='../tests/MEN_dataset_natural_form_full.csv'):
     
         df = pd.read_csv(men)
         sim_values = []
@@ -244,21 +242,24 @@ class Space():
 
         #         print('%s:evaluated' % e[0:2])
             except Exception as ex:
-                print(ex)
+                if print_ex:
+                    print(ex)
 
         print('MEN(sim) test, coverage:',len(sim_values),'/',len(df.values),spearmanr(sim_values, cs_values))    
         
-    def ws353_evaluation(self, datasets='agrred'):
+    def ws353_evaluation(self, datasets='sim', print_ex=False):
         
-        ws353_ag = '/tests/'\
-                    'wordsim353_sim_rel/wordsim353_agreed.csv'
-        ws353_gs = 'tests/wordsim353_sim_rel/'\
-                    'wordsim_similarity_goldstandard.csv'
-
-        if datasets != 'gold_standars':
+        ws353_ag = '/../tests/wordsim353_sim_rel/wordsim353_agreed.csv'
+        ws353_gs_sim = '../tests/wordsim_similarity_goldstandard.csv'
+        ws353_gs_rel = '../tests/wordsim_relatedness_goldstandard.txt'
+        
+        if datasets == 'sim':
+            ws353 = ws353_gs_sim
+        elif datasets == 'rel':    
+            ws353 = ws353_gs_rel
+        else:
             ws353 = ws353_ag
-        else:    
-            ws353 = ws353_gs
+            
         cs_values = []
         ws_values = []
         ws_df = pd.read_csv(ws353)
@@ -269,8 +270,9 @@ class Space():
                 ws_values.append(int(ws_e[-1]))
         #         print('%s:evaluated' % e[0:2])
             except Exception as ex:
-                print(ex)
-
+                if print_ex:
+                    print(ex)
+                    
         print('ws353', str(datasets),'test, coverage:',len(ws_values),'/',len(ws_df.values),spearmanr(ws_values, cs_values))
         
     

@@ -177,8 +177,8 @@ class Space():
 
         return final_knn
 
-    def generate_tsne(self, path=None, size=(10, 7), word_count=1000,
-                      embeddings=None, pick_random=True):
+    def generate_tsne(self, path=None, size=(10, 10), word_count=1000,
+                      embeddings=None, pick_random=True, method='tsne'):
 
         """
         adapted from github repo GradySimon/tensorflow-glove,
@@ -187,15 +187,22 @@ class Space():
 
         if embeddings is None:
             embeddings = self.matrix_space
-        from sklearn.manifold import TSNE
+        
         tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
+        pca = PCA(n_components=2)
+
+        if method == 'tsne':
+            reduction_m = tsne
+        else:
+            reduction_m = pca
+
         if pick_random:
             mx = len(self.matrix_space)
             indx = np.random.randint(0, high=mx, size=word_count)
-            low_dim_embs = tsne.fit_transform(np.take(self.matrix_space, indx, axis=0))
-            labels = [self.key_by_value(i) for i in indx]
+            low_dim_embs = reduction_m.fit_transform(np.take(self.matrix_space, indx, axis=0))
+            labels = list(self.vocabulary.keys())[:word_count]
         else:
-            low_dim_embs = tsne.fit_transform(embeddings[:word_count, :])
+            low_dim_embs = reduction_m.fit_transform(embeddings[:word_count, :])
             labels = list(self.vocabulary.keys())[:word_count]
         return _plot_with_labels(low_dim_embs, labels, path, size)
 

@@ -6,7 +6,10 @@ import nltk
 import math
 from scipy.stats.stats import spearmanr
 import pandas as pd
+from numpy import linalg as LA
 from sklearn.neighbors import NearestNeighbors as NN
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 
 class Space():
 
@@ -37,14 +40,19 @@ class Space():
             self.vocabulary[line.split(' ', 1)[0]] = index
             self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
 
-    def txt2space(self, dir, token=None, dimension=None, en_remove=True, dim_in_file=False):
+    def txt2space(self, dir, en_remove=True, dim_in_file=False, dtype="float64"):
 
         file = open(dir, 'r')
-        line = file.readline()
         if dim_in_file:
+            line = file.readline()
             info = line.split()
             token = int(info[0])
-            dimesion = int(info[1])
+            dimension = int(info[1])
+        else:
+            token = len(file.readlines())
+            file = open(dir, 'r')
+            line = file.readline()
+            dimension = len(np.fromstring(line.split(' ', 1)[1], dtype=dtype, sep=" "))
 
         self.matrix_space = np.ndarray(shape=(token, dimension))
 
@@ -53,10 +61,13 @@ class Space():
                 self.vocabulary[line.split(' ', 1)[0].replace('en_', '')] = index
             else:
                 self.vocabulary[line.split(' ', 1)[0]] = index
-            self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
+            try:
+                self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype=dtype, sep=" ")
+            except Exception as exc:
+                print('problem with', line)
 
     def to_csr_matrix(self):
-        
+
         import scipy.sparse.to_csr_matrix as csr
         return csr(self.matrix_space)
 
@@ -94,7 +105,6 @@ class Space():
         return v
 
     def norm(self, vector):
-
         from numpy.linalg import norm as nm
 
         if type(vector) == str:
@@ -118,9 +128,18 @@ class Space():
             sumxx += x*x
             sumyy += y*y
             sumxy += x*y
-        return sumxy/math.sqrt(sumxx*sumyy)    
+        return sumxy/math.sqrt(sumxx*sumyy)
 
-    def extract_knn(self, word, algorithm='brute', n_nbrs=16,
+    def poincare_glove_dist(self, v1, v2):
+
+        if type(v1) == str:
+            v1 = self.vector(v1)
+        if type(v2) == str:
+            v2 = self.vector(v2)
+
+        return hyper_glv_dist(v1, v2)
+
+    def extract_knn(self, word, algorithm='brute', n_nbrs=16, given_word=None,
                     metric='cosine', return_distance=False, plus_en=False):
 
         """
@@ -139,11 +158,11 @@ class Space():
 
         if type(word) == str:
             index = mydict[word]
-            vector = [space[index]]
+            vector = space[index].reshape(1,self.matrix_space.shape[1])
             v1 = space[mydict[word]]
 
         else:
-            vector = [word]
+            vector = word.reshape(1,self.matrix_space.shape[1])
             v1 = word
 
         word_nn = nn.kneighbors(vector, return_distance=return_distance)
@@ -159,7 +178,7 @@ class Space():
         return final_knn
 
     def generate_tsne(self, path=None, size=(10, 7), word_count=1000,
-                      embeddings=None, plot=False):
+                      embeddings=None, pick_random=True):
 
         """
         adapted from github repo GradySimon/tensorflow-glove,
@@ -170,11 +189,17 @@ class Space():
             embeddings = self.matrix_space
         from sklearn.manifold import TSNE
         tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
-        low_dim_embs = tsne.fit_transform(embeddings[:word_count, :])
-        labels = list(self.vocabulary.keys())[:word_count]
+        if pick_random:
+            mx = len(self.matrix_space)
+            indx = np.random.randint(0, high=mx, size=word_count)
+            low_dim_embs = tsne.fit_transform(np.take(self.matrix_space, indx, axis=0))
+            labels = [self.key_by_value(i) for i in indx]
+        else:
+            low_dim_embs = tsne.fit_transform(embeddings[:word_count, :])
+            labels = list(self.vocabulary.keys())[:word_count]
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
-    def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False, print_ex=False, ml_10='../tests/mitchell-lapata/ml_10.csv'):
+    def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False, print_ex=False, ml_10='../tests/ml_10.csv'):
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -187,6 +212,7 @@ class Space():
         for index, e in enumerate(df.values):
             if  e[1] not in test_phrase:
                 continue
+
             try:
                 c_1  = self.vector(e[3], plus_en=plus_en) + self.vector(e[4], plus_en=plus_en)
                 c_2  = self.vector(e[5], plus_en=plus_en) + self.vector(e[6], plus_en=plus_en)
@@ -194,11 +220,11 @@ class Space():
                 ml_values.append(int(e[-1]))
                 # print('%s:collected' % e[3:7])
                 c += 1
-            except Exception as e: 
+            except Exception as e:
                 if print_ex:
                     print(e)
-                    
-        print('testing {}, coverage {}/{}: {}'.format(test_phrase, c, test_values, 
+
+        print('testing {}, coverage {}/{}: {}'.format(test_phrase, c, test_values,
                                              spearmanr(ml_values, cs_values)))
         if plot:
 
@@ -208,19 +234,64 @@ class Space():
             sns.set(style="whitegrid")
             plt.scatter(ml_values,cs_values)
 
-    def simlex_evaluation(self,  en=False, plot=False, simlex='../tests/SimLex-en.csv'):
+    def ml_10_mx_trasnform(self, dep_sp, test_phrase='adjectivenouns', plus_en=False, plot=False,
+                        print_ex=False, ml_10='../tests/ml_10.csv'):
+
+        df = pd.read_csv(ml_10)
+        ml_values = []
+        cs_values = []
+        c = 0
+        dim = self.matrix_space.shape[1]
+        dep_ph_dict = {'adjectivenouns':'_amod', 'verbobjects':'_dobj', 'compoundnouns':'_nmod'}
+        test_values = int(len(df.values)/3)
+        if test_phrase == 'all':
+            test_phrase = list(set(df['type']))
+            test_values = int(len(df.values))
+        for index, e in enumerate(df.values):
+            if  e[1] not in test_phrase:
+                continue
+
+            try:
+                dep_lb = dep_ph_dict[e[1]]
+                c_1  = dep_sp.vector(dep_lb).reshape(dim, dim).dot(self.vector(e[3], plus_en=plus_en)) + self.vector(e[4], plus_en=plus_en) 
+                c_2  = dep_sp.vector(dep_lb).reshape(dim, dim).dot(self.vector(e[5], plus_en=plus_en)) + self.vector(e[6], plus_en=plus_en)
+                cs_values.append(self.cosine_similarity(c_1, c_2))
+                ml_values.append(int(e[-1]))
+                # print('%s:collected' % e[3:7])
+                c += 1
+            except Exception as e:
+                if print_ex:
+                    print(e)
+
+        print('testing {}, coverage {}/{}: {}'.format(test_phrase+'transform', c, test_values,
+                                             spearmanr(ml_values, cs_values)))
+        if plot:
+
+            import matplotlib.pyplot as plt
+            import seaborn as sns
+
+            sns.set(style="whitegrid")
+            plt.scatter(ml_values,cs_values)
+
+    def simlex_evaluation(self, distance='cosine', en=False, plot=False,  print_ex=False, simlex='../tests/SimLex-en.csv'):
 
         df = pd.read_csv(simlex)
         sim_values = []
         cs_values = []
 
         for index, e in enumerate(df.values):
-            sim_values.append(int(e[-1]))
-            cs_values.append(self.cosine_similarity(e[0], e[1]))
+            try:
+                if distance=='cosine':
+                    cs_values.append(self.cosine_similarity(e[0], e[1]))
+                else:
+                    cs_values.append(self.poincare_glove_dist(e[0], e[1]))
+                sim_values.append(int(e[-1]))
 #             print('%s:evaluated' % e[0:2])
+            except Exception as ex:
+               if print_ex:
+                   print(ex)
 
-        print(' vectors ', spearmanr(sim_values, cs_values))
-
+        print('Simlex test, coverage:',len(sim_values),'/',len(df.values),spearmanr(sim_values, cs_values))
         if plot:
 
             import matplotlib.pyplot as plt
@@ -228,16 +299,19 @@ class Space():
 
             sns.set(style="whitegrid")
             plt.scatter(sim_values,cs_values)
-            
-    def MEN_evaluation(self, n=False, plot=False, print_ex=False, men='../tests/MEN_dataset_natural_form_full.csv'):
-    
+
+    def MEN_evaluation(self, distance='cosine', n=False, plot=False, print_ex=False, men='../tests/MEN_dataset_natural_form_full.csv'):
+
         df = pd.read_csv(men)
         sim_values = []
         cs_values = []
 
         for index, e in enumerate(df.values):
             try:
-                cs_values.append(self.cosine_similarity(self.vector(e[0]), self.vector(e[1])))
+                if distance=='cosine':
+                    cs_values.append(self.cosine_similarity(e[0], e[1]))
+                else:
+                    cs_values.append(self.poincare_glove_dist(e[0], e[1]))
                 sim_values.append(int(e[-1]))
 
         #         print('%s:evaluated' % e[0:2])
@@ -245,37 +319,47 @@ class Space():
                 if print_ex:
                     print(ex)
 
-        print('MEN(sim) test, coverage:',len(sim_values),'/',len(df.values),spearmanr(sim_values, cs_values))    
-        
-    def ws353_evaluation(self, datasets='sim', print_ex=False):
-        
-        ws353_ag = '/../tests/wordsim353_sim_rel/wordsim353_agreed.csv'
+        print('MEN(sim) test, coverage:',len(sim_values),'/',len(df.values),spearmanr(sim_values, cs_values))
+
+    def ws353_evaluation(self, datasets='sim', distance='cosine', print_ex=False):
+
+        ws353_ag = '../tests/wordsim353_sim_rel/wordsim353_agreed.csv'
         ws353_gs_sim = '../tests/wordsim_similarity_goldstandard.csv'
-        ws353_gs_rel = '../tests/wordsim_relatedness_goldstandard.txt'
-        
+        ws353_gs_rel = '../tests/wordsim_relatedness_goldstandard.csv'
+
         if datasets == 'sim':
             ws353 = ws353_gs_sim
-        elif datasets == 'rel':    
+        elif datasets == 'rel':
             ws353 = ws353_gs_rel
         else:
             ws353 = ws353_ag
-            
+
         cs_values = []
         ws_values = []
         ws_df = pd.read_csv(ws353)
         for index, ws_e in enumerate(ws_df.values):
             try:
-                cs_values.append(self.cosine_similarity(self.vector(ws_e[1]), 
-                                                        self.vector(ws_e[2])))
+                if distance=='cosine':
+                    cs_values.append(self.cosine_similarity(ws_e[1], ws_e[2]))
+                else:
+                    cs_values.append(self.poincare_glove_dist(ws_e[1], ws_e[2]))
+
                 ws_values.append(int(ws_e[-1]))
         #         print('%s:evaluated' % e[0:2])
             except Exception as ex:
                 if print_ex:
                     print(ex)
-                    
+
         print('ws353', str(datasets),'test, coverage:',len(ws_values),'/',len(ws_df.values),spearmanr(ws_values, cs_values))
-        
-    
+
+    def wordsim_evaluations(self):
+
+        self.simlex_evaluation()
+        self.MEN_evaluation()
+        self.ws353_evaluation(datasets='sim')
+        self.ws353_evaluation(datasets='rel')
+
+
 def _plot_with_labels(low_dim_embs, labels, path, size):
 
     """
@@ -295,3 +379,14 @@ def _plot_with_labels(low_dim_embs, labels, path, size):
     if path is not None:
         figure.savefig(path)
         plt.close(figure)
+
+def lambda_vec(x):
+    return 2/(1 - np.power(LA.norm(x, 2),2))
+
+
+def hyper_glv_dist(x,y):
+
+    return np.power(np.cosh(1 + lambda_vec(y)*lambda_vec(x)*np.power(LA.norm(x-y, 2),2)/2), -1)
+
+
+

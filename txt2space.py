@@ -10,6 +10,9 @@ from numpy import linalg as LA
 from sklearn.neighbors import NearestNeighbors as NN
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 class Space():
 
@@ -40,7 +43,7 @@ class Space():
             self.vocabulary[line.split(' ', 1)[0]] = index
             self.matrix_space[index] = np.fromstring(line.split(' ', 1)[1], dtype="float32", sep=" ")
 
-    def txt2space(self, dir, en_remove=True, dim_in_file=False, dtype="float64"):
+    def txt2space(self, dir, token=None, dimension=None, en_remove=True, dim_in_file=False, dtype="float64"):
 
         file = open(dir, 'r')
         if dim_in_file:
@@ -177,8 +180,8 @@ class Space():
 
         return final_knn
 
-    def generate_tsne(self, path=None, size=(10, 10), word_count=1000,
-                      embeddings=None, pick_random=True, method='tsne'):
+    def plot_space(self, method='tsne', word_count=1000, pick_random=True,
+                      size=(10, 10), embeddings=None, path=None):
 
         """
         adapted from github repo GradySimon/tensorflow-glove,
@@ -193,8 +196,11 @@ class Space():
 
         if method == 'tsne':
             reduction_m = tsne
-        else:
+        elif method == 'pca':
             reduction_m = pca
+        else: 
+            print("No such method:", method)
+            exit(1)
 
         if pick_random:
             mx = len(self.matrix_space)
@@ -204,9 +210,11 @@ class Space():
         else:
             low_dim_embs = reduction_m.fit_transform(embeddings[:word_count, :])
             labels = list(self.vocabulary.keys())[:word_count]
+
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
-    def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False, print_ex=False, ml_10='../tests/ml_10.csv'):
+    def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False, retunr_result=False, 
+        print_ex=False, ml_10='tests/ml_10.csv'):
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -231,18 +239,17 @@ class Space():
                 if print_ex:
                     print(e)
 
-        print('testing {}, coverage {}/{}: {}'.format(test_phrase, c, test_values,
-                                             spearmanr(ml_values, cs_values)))
+        corr = spearmanr(ml_values, cs_values)
+        if retunr_result:
+            return corr 
+
+        print('testing {}, coverage {}/{}: {}'.format(test_phrase, c, test_values, corr))
+
         if plot:
-
-            import matplotlib.pyplot as plt
-            import seaborn as sns
-
-            sns.set(style="whitegrid")
             plt.scatter(ml_values,cs_values)
 
-    def ml_10_mx_trasnform(self, dep_sp, test_phrase='adjectivenouns', plus_en=False, plot=False,
-                        print_ex=False, ml_10='../tests/ml_10.csv'):
+    def ml_10_mx_trasnform(self, dep_sp, test_phrase='adjectivenouns', retunr_result=False, plus_en=False, plot=False,
+                        print_ex=False, ml_10='tests/mitchell-lapata/ml_10.csv'):
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -269,9 +276,11 @@ class Space():
             except Exception as e:
                 if print_ex:
                     print(e)
+        corr = spearmanr(ml_values, cs_values)
+        if retunr_result:
+            return corr 
 
-        print('testing {}, coverage {}/{}: {}'.format(test_phrase+'transform', c, test_values,
-                                             spearmanr(ml_values, cs_values)))
+        print('testing {}, coverage {}/{}: {}'.format(test_phrase+'transform', c, test_values, corr))
         if plot:
 
             import matplotlib.pyplot as plt
@@ -280,7 +289,8 @@ class Space():
             sns.set(style="whitegrid")
             plt.scatter(ml_values,cs_values)
 
-    def simlex_evaluation(self, distance='cosine', en=False, plot=False,  print_ex=False, simlex='../tests/SimLex-en.csv'):
+    def simlex_evaluation(self, distance='cosine', en=False, plot=False, retunr_result=False ,
+        print_ex=False, simlex='tests/SimLex-en.csv'):
 
         df = pd.read_csv(simlex)
         sim_values = []
@@ -297,8 +307,10 @@ class Space():
             except Exception as ex:
                if print_ex:
                    print(ex)
-
-        print('Simlex test, coverage:',len(sim_values),'/',len(df.values),spearmanr(sim_values, cs_values))
+        corr = spearmanr(sim_values, cs_values)
+        if retunr_result:
+            return corr 
+        print('Simlex test, coverage:',len(sim_values),'/',len(df.values),corr)
         if plot:
 
             import matplotlib.pyplot as plt
@@ -307,7 +319,8 @@ class Space():
             sns.set(style="whitegrid")
             plt.scatter(sim_values,cs_values)
 
-    def MEN_evaluation(self, distance='cosine', n=False, plot=False, print_ex=False, men='../tests/MEN_dataset_natural_form_full.csv'):
+    def MEN_evaluation(self, distance='cosine', n=False, plot=False, retunr_result=False, 
+        print_ex=False, men='tests/MEN_dataset_natural_form_full.csv'):
 
         df = pd.read_csv(men)
         sim_values = []
@@ -325,14 +338,16 @@ class Space():
             except Exception as ex:
                 if print_ex:
                     print(ex)
+        corr = spearmanr(sim_values, cs_values)
+        if retunr_result:
+            return corr 
+        print('MEN(sim) test, coverage:',len(sim_values),'/',len(df.values), corr)
 
-        print('MEN(sim) test, coverage:',len(sim_values),'/',len(df.values),spearmanr(sim_values, cs_values))
+    def ws353_evaluation(self, datasets='sim', distance='cosine', retunr_result=False, print_ex=False):
 
-    def ws353_evaluation(self, datasets='sim', distance='cosine', print_ex=False):
-
-        ws353_ag = '../tests/wordsim353_sim_rel/wordsim353_agreed.csv'
-        ws353_gs_sim = '../tests/wordsim_similarity_goldstandard.csv'
-        ws353_gs_rel = '../tests/wordsim_relatedness_goldstandard.csv'
+        ws353_ag = 'test/wordsim353_agreed.csv'
+        ws353_gs_sim = 'tests/wordsim_similarity_goldstandard.csv'
+        ws353_gs_rel = 'tests/wordsim_relatedness_goldstandard.csv'
 
         if datasets == 'sim':
             ws353 = ws353_gs_sim
@@ -356,16 +371,39 @@ class Space():
             except Exception as ex:
                 if print_ex:
                     print(ex)
+        corr = spearmanr(ws_values, cs_values)
+        if retunr_result:
+            return corr 
+        print('ws353', str(datasets),'test, coverage:',len(ws_values),'/',len(ws_df.values),corr)
 
-        print('ws353', str(datasets),'test, coverage:',len(ws_values),'/',len(ws_df.values),spearmanr(ws_values, cs_values))
+    def ml_eval(self,retunr_results=False):
+        a = self.ml_10_evaluation('adjectivenouns', retunr_result=retunr_results)
+        v = self.ml_10_evaluation('verbobjects', retunr_result=retunr_results)
+        c = self.ml_10_evaluation('compoundnouns', retunr_result=retunr_results)
+        l = self.ml_10_evaluation('all', retunr_result=retunr_results)    
 
-    def wordsim_evaluations(self):
+        if retunr_results:
+            return a,v,c,l
 
-        self.simlex_evaluation()
-        self.MEN_evaluation()
-        self.ws353_evaluation(datasets='sim')
-        self.ws353_evaluation(datasets='rel')
+    def wordsim_evaluations(self, retunr_results=False):
 
+        s = self.simlex_evaluation(retunr_result=retunr_results)
+        m = self.MEN_evaluation(retunr_result=retunr_results)
+        ws = self.ws353_evaluation(datasets='sim', retunr_result=retunr_results)
+        wr = self.ws353_evaluation(datasets='rel', retunr_result=retunr_results)
+
+        if retunr_results:
+            return s,m,ws,wr
+    
+    def run_tests(self, retunr_results=False):
+        
+        if retunr_results:
+            s,m,ws,wr = self.wordsim_evaluations(retunr_results=retunr_results)
+            a,v,c,l = self.ml_eval(retunr_results=retunr_results)
+            return s,m,ws,wr,a,v,c,l
+        else:
+            self.wordsim_evaluations()
+            self.ml_eval()            
 
 def _plot_with_labels(low_dim_embs, labels, path, size):
 

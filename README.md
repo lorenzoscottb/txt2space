@@ -12,7 +12,6 @@ Some supported functions and test:
 ## Basic instructions 
 
 ### File Format
-Leave first line blank/for space information, as it will be discarded.
 Vectors have to be stored in the word - vector format, e.g.
 
 ```bash
@@ -27,7 +26,7 @@ from txt2space import Space
 
 txt_space = 'path/to/space.txt'
 space = Space()
-space.txt2space(txt_space, token=10000, dimension=100, en_remove=True)
+space.txt2space(txt_space, en_remove=True)
 ```
 Alternatively, if the first line of the file contains space informations (#tokens, #dimensions)
 
@@ -65,6 +64,8 @@ space.extract_knn('car', n_nbrs=10)
 ```python
 sapce.plot_space(method='pca', word_count=10000, pick_random=True, size=(10, 10))
 ```
+![space](https://github.com/lorenzoscottb/txt2space/blob/master/tests/semsp_test.png)
+
 ## Requirments
  - numpy >= 1.15.4
  - nltk >= 3.3

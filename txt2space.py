@@ -243,13 +243,14 @@ class Space():
         if retunr_result:
             return corr 
 
-        print('testing {}, coverage {}/{}: {}'.format(test_phrase, c, test_values, corr))
-
+        print('testing {}, coverage:{}/{}, spearmanr:{:.3f}, p:{}'.format(test_phrase, c, test_values, 
+                                                                          corr[0], corr[1]))
         if plot:
             plt.scatter(ml_values,cs_values)
 
-    def ml_10_mx_trasnform(self, dep_sp, test_phrase='adjectivenouns', retunr_result=False, plus_en=False, plot=False,
-                        print_ex=False, ml_10='tests/mitchell-lapata/ml_10.csv'):
+    def ml_10_mx_trasnform(self, dep_sp, src_sp, test_phrase='adjectivenouns', retunr_result=False, plus_en=False, 
+                        print_ex=False, ml_10='tests/ml_10.csv',
+                        transpose=False, plot=False,):
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -267,8 +268,12 @@ class Space():
 
             try:
                 dep_lb = dep_ph_dict[e[1]]
-                c_1  = dep_sp.vector(dep_lb).reshape(dim, dim).dot(self.vector(e[3], plus_en=plus_en)) + self.vector(e[4], plus_en=plus_en) 
-                c_2  = dep_sp.vector(dep_lb).reshape(dim, dim).dot(self.vector(e[5], plus_en=plus_en)) + self.vector(e[6], plus_en=plus_en)
+                if transpose:
+                    c_1  = dep_sp.vector(dep_lb).reshape(dim, dim).transpose().dot(src_sp.vector(e[3], plus_en=plus_en)) + self.vector(e[4], plus_en=plus_en) 
+                    c_2  = dep_sp.vector(dep_lb).reshape(dim, dim).transpose().dot(src_sp.vector(e[5], plus_en=plus_en)) + self.vector(e[6], plus_en=plus_en)
+                else:
+                    c_1  = dep_sp.vector(dep_lb).reshape(dim, dim).dot(src_sp.vector(e[3], plus_en=plus_en)) + self.vector(e[4], plus_en=plus_en) 
+                    c_2  = dep_sp.vector(dep_lb).reshape(dim, dim).dot(src_sp.vector(e[5], plus_en=plus_en)) + self.vector(e[6], plus_en=plus_en)
                 cs_values.append(self.cosine_similarity(c_1, c_2))
                 ml_values.append(int(e[-1]))
                 # print('%s:collected' % e[3:7])
@@ -280,13 +285,11 @@ class Space():
         if retunr_result:
             return corr 
 
-        print('testing {}, coverage {}/{}: {}'.format(test_phrase+'transform', c, test_values, corr))
+        print('testing {}, coverage:{}/{}, spearmanr:{:.3f} p:{}'.format(test_phrase+' trsfrm', c, test_values, 
+                                                                          corr[0], corr[1]))
         if plot:
-
             import matplotlib.pyplot as plt
             import seaborn as sns
-
-            sns.set(style="whitegrid")
             plt.scatter(ml_values,cs_values)
 
     def simlex_evaluation(self, distance='cosine', en=False, plot=False, retunr_result=False ,
@@ -310,7 +313,9 @@ class Space():
         corr = spearmanr(sim_values, cs_values)
         if retunr_result:
             return corr 
-        print('Simlex test, coverage:',len(sim_values),'/',len(df.values),corr)
+
+        print('Simlex, coverage:{}/{}, spearmanr:{:.3f}, p:{}'.format(len(sim_values), len(df.values),
+                                                                     corr[0], corr[1]))
         if plot:
 
             import matplotlib.pyplot as plt
@@ -341,11 +346,13 @@ class Space():
         corr = spearmanr(sim_values, cs_values)
         if retunr_result:
             return corr 
-        print('MEN(sim) test, coverage:',len(sim_values),'/',len(df.values), corr)
+
+        print('MEN (sim), coverage:{}/{}, spearmanr:{:.3f}, p:{}'.format(len(sim_values),len(df.values),
+                                                                     corr[0], corr[1]))
 
     def ws353_evaluation(self, datasets='sim', distance='cosine', retunr_result=False, print_ex=False):
 
-        ws353_ag = 'test/wordsim353_agreed.csv'
+        ws353_ag = 'testswordsim353_sim_rel/wordsim353_agreed.csv'
         ws353_gs_sim = 'tests/wordsim_similarity_goldstandard.csv'
         ws353_gs_rel = 'tests/wordsim_relatedness_goldstandard.csv'
 
@@ -374,7 +381,9 @@ class Space():
         corr = spearmanr(ws_values, cs_values)
         if retunr_result:
             return corr 
-        print('ws353', str(datasets),'test, coverage:',len(ws_values),'/',len(ws_df.values),corr)
+
+        print('WS353 {}, coverage:{}/{}, spearmanr:{:.3f}, p:{}'.format(str(datasets), len(ws_values), len(ws_df.values),
+                                                                     corr[0], corr[1]))
 
     def ml_eval(self,retunr_results=False):
         a = self.ml_10_evaluation('adjectivenouns', retunr_result=retunr_results)
@@ -384,6 +393,18 @@ class Space():
 
         if retunr_results:
             return a,v,c,l
+
+    def ml_full_eval(self, dep_sp, src_sp, retunr_results=False, transpose=False):
+        self.ml_10_evaluation(test_phrase='all', retunr_result=retunr_results)
+        print('\n')
+        self.ml_10_evaluation(test_phrase='adjectivenouns')
+        self.ml_10_mx_trasnform(dep_sp, src_sp, test_phrase='adjectivenouns',transpose=transpose, retunr_result=retunr_results)
+        print('\n')
+        self.ml_10_evaluation(test_phrase='verbobjects', retunr_result=retunr_results)
+        self.ml_10_mx_trasnform(dep_sp, src_sp, test_phrase='verbobjects', transpose=transpose, retunr_result=retunr_results)
+        print('\n')
+        self.ml_10_evaluation(test_phrase='compoundnouns', retunr_result=retunr_results)
+        self.ml_10_mx_trasnform(dep_sp, src_sp, test_phrase='compoundnouns', transpose=transpose, retunr_result=retunr_results)
 
     def wordsim_evaluations(self, retunr_results=False):
 

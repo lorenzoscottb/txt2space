@@ -27,16 +27,44 @@ from txt2space import Space
 
 txt_space = 'path/to/space.txt'
 space = Space()
-space.txt2space(txt_space, token=10000, dimensions=100, en_remove=True)
+space.txt2space(txt_space, token=10000, dimension=100, en_remove=True)
 ```
 Alternatively, if the first line of the file contains space informations (#tokens, #dimensions)
 
 ```python
 space = Space()
 space.txt2space(txt_space, dim_in_file=True)
-space.extract_knn('man')
+space.wordsim_evaluations()
+space.ml_eval()
 ```
-
+```
+Simlex, coverage:726/999, spearmanr:0.140, p:0.0001491415786380867
+MEN (sim), coverage:1544/3000, spearmanr:0.628, p:5.188578738142056e-170
+WS353 sim, coverage:152/203, spearmanr:0.615, p:3.24754812311729e-17
+WS353 rel, coverage:200/251, spearmanr:0.564, p:3.196981679629327e-18
+testing adjectivenouns, coverage:1836/1944, spearmanr:0.420, p:2.090699230205237e-79
+testing verbobjects, coverage:1836/1944, spearmanr:0.338, p:3.4823286019218477e-50
+testing compoundnouns, coverage:1782/1944, spearmanr:0.487, p:1.0277585019257062e-106
+testing ['adjectivenouns', 'verbobjects', 'compoundnouns'], coverage:5454/5832, spearmanr:0.432, p:9.537284983261773e-247
+```
+```python
+space.extract_knn('car', n_nbrs=10)
+```
+```
+[('cars', 0.3988395306118516),
+ ('earnhardt', 0.3751464141080185),
+ ('racing', 0.3689658790679401),
+ ('truck', 0.3547593171383764),
+ ('driver', 0.34099113613900334),
+ ('bike', 0.33193482489064463),
+ ('vehicle', 0.3315263994468244),
+ ('motorcycle', 0.32879053580788115),
+ ('engine', 0.32823398561412326),
+ ('automobile', 0.32311784173446095)]
+```
+```python
+sapce.plot_space(method='pca', word_count=10000, pick_random=True, size=(10, 10))
+```
 ## Requirments
  - numpy >= 1.15.4
  - nltk >= 3.3

@@ -62,7 +62,7 @@ space.extract_knn('car', n_nbrs=10)
  ('automobile', 0.32311784173446095)]
 ```
 ```python
-sapce.plot_space(method='pca', word_count=10000, pick_random=True, size=(10, 10))
+sapce.plot_space(method='tsne', word_count=1000, pick_random=True, size=(50, 50))
 ```
 ![space](https://github.com/lorenzoscottb/txt2space/blob/master/tests/semsp_test.png)
 

@@ -213,13 +213,14 @@ class Space():
 
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
-    
     def relpron_evaluation(self, dataset='test'):
 
         dev_or_test = dataset
         goldfile = 'tests/relpron.'+dev_or_test+'.txt'
         dataset = pd.read_csv(goldfile, header=None, sep=':', names=['terms', 'props'], engine='python')
         termxprp = {}
+        flc = 0
+        llc = 0
 
         defs = []   # definitions
         for line in open(goldfile):
@@ -232,6 +233,7 @@ class Space():
             termxprp[tr] = {}
             trm_c = 0
             for pr in dataset.props:
+                flc += 1
                 try: #tg = 1 if tr+':'+pr in defs else 0
                     p = ' '.join([po.split('_')[0] for po in pr.split()])
                     vp = self.vector(p.split()[0])+self.vector(p.split()[2])+self.vector(p.split()[3])
@@ -252,11 +254,12 @@ class Space():
             tc = termxprp[t]['cnt']
             apk = 0
             for c, e in enumerate(termxprp[t]['tag']):
+                llc += 1
                 apk += (sum(termxprp[t]['tag'][:c])/(c+1))*e
             ap.append(apk/tc)
         r_map = sum(ap)/len(ap)
-        print('relpron, MAP value: {}'.format(r_map))
-
+        print('relpron,   coverage:{}/{}, MAP value:{:.3f}'.format(llc, flc, r_map))    
+    
     def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False, retunr_result=False, 
         print_ex=False, ml_10='tests/ml_10.csv'):
 

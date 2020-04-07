@@ -38,14 +38,15 @@ space.wordsim_evaluations()
 space.ml_eval()
 ```
 ```
-Simlex, coverage:726/999, spearmanr:0.140, p:0.0001491415786380867
-MEN (sim), coverage:1544/3000, spearmanr:0.628, p:5.188578738142056e-170
-WS353 sim, coverage:152/203, spearmanr:0.615, p:3.24754812311729e-17
-WS353 rel, coverage:200/251, spearmanr:0.564, p:3.196981679629327e-18
-testing adjectivenouns, coverage:1836/1944, spearmanr:0.420, p:2.090699230205237e-79
-testing verbobjects, coverage:1836/1944, spearmanr:0.338, p:3.4823286019218477e-50
-testing compoundnouns, coverage:1782/1944, spearmanr:0.487, p:1.0277585019257062e-106
-testing ['adjectivenouns', 'verbobjects', 'compoundnouns'], coverage:5454/5832, spearmanr:0.432, p:9.537284983261773e-247
+Simlex,    coverage:994/999,   spearmanr:0.209, p:0.000
+MEN (sim), coverage:2913/3000, spearmanr:0.724, p:0.000
+WS353 sim, coverage:202/203,   spearmanr:0.772, p:0.000
+WS353 rel, coverage:251/251,   spearmanr:0.652, p:0.000
+relpron,   coverage:74665/323761, MAP value:0.107
+testing adjectivenouns, coverage:1854/1944, spearmanr:0.464, p:0.000
+testing verbobjects,    coverage:1944/1944, spearmanr:0.392, p:0.000
+testing compoundnouns,  coverage:1944/1944, spearmanr:0.496, p:0.000
+testing all,            coverage:5742/5832, spearmanr:0.449, p:0.000
 ```
 ```python
 space.extract_knn('car', n_nbrs=10)

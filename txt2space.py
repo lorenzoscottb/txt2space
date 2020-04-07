@@ -213,6 +213,50 @@ class Space():
 
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
+    
+    def relpron_evaluation(self, dataset='test'):
+
+        dev_or_test = dataset
+        goldfile = 'tests/relpron.'+dev_or_test+'.txt'
+        dataset = pd.read_csv(goldfile, header=None, sep=':', names=['terms', 'props'], engine='python')
+        termxprp = {}
+
+        defs = []   # definitions
+        for line in open(goldfile):
+            if line == 'SBJ friction: phenomenon that prevent slipping': 
+                line = 'SBJ friction: phenomenon that prevent slip'
+            defs.append(line.replace('\n', ''))
+            
+        for tr in dataset.terms:
+            trm_v = {}
+            termxprp[tr] = {}
+            trm_c = 0
+            for pr in dataset.props:
+                try: #tg = 1 if tr+':'+pr in defs else 0
+                    p = ' '.join([po.split('_')[0] for po in pr.split()])
+                    vp = self.vector(p.split()[0])+self.vector(p.split()[2])+self.vector(p.split()[3])
+                    sim = self.cosine_similarity(tr.split()[1].split('_')[0], vp)
+                    trm_v.update({pr:sim})
+                    trm_c += 1 if tr+':'+pr in defs else 0
+                except Exception as e:
+                    # print(e)
+                    None
+            trm_v = sorted(trm_v.items(), key=lambda x: x[1], reverse=True)
+            trm_v = [i[0] for i in trm_v] # sort by c.s.
+            termxprp[tr]['cnt'] = trm_c
+            termxprp[tr]['tag'] = [1 if tr+':'+pr in defs else 0 for pr in trm_v]
+        #     termxprp['props'].extend(trm_v)
+        # rlpr_test_df = pd.DataFrame(rlpr_test)
+        ap = []
+        for t in termxprp.keys():
+            tc = termxprp[t]['cnt']
+            apk = 0
+            for c, e in enumerate(termxprp[t]['tag']):
+                apk += (sum(termxprp[t]['tag'][:c])/(c+1))*e
+            ap.append(apk/tc)
+        r_map = sum(ap)/len(ap)
+        print('relpron, MAP value: {}'.format(r_map))
+
     def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False, retunr_result=False, 
         print_ex=False, ml_10='tests/ml_10.csv'):
 

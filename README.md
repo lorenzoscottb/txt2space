@@ -41,7 +41,7 @@ Alternatively, if the first line of the file contains space informations (#token
 ```python
 space = Space()
 space.txt2space(txt_space, dim_in_file=True)
-run_tests(relpron_ds='dev', mix_gr_rel=True)
+space.run_tests(relpron_ds='dev', mix_gr_rel=True)
 ```
 ```
 Simlex,    coverage:726/999,   spearmanr:0.140, p:0.000

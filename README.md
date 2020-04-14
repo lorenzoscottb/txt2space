@@ -41,19 +41,18 @@ Alternatively, if the first line of the file contains space informations (#token
 ```python
 space = Space()
 space.txt2space(txt_space, dim_in_file=True)
-space.wordsim_evaluations()
-space.ml_eval()
+run_tests(relpron_ds='dev', mix_gr_rel=True)
 ```
 ```
-Simlex,    coverage:994/999,   spearmanr:0.209, p:0.000
-MEN (sim), coverage:2913/3000, spearmanr:0.724, p:0.000
-WS353 sim, coverage:202/203,   spearmanr:0.772, p:0.000
-WS353 rel, coverage:251/251,   spearmanr:0.652, p:0.000
-relpron,   coverage:74665/323761, MAP value:0.107
-testing adjectivenouns, coverage:1854/1944, spearmanr:0.464, p:0.000
-testing verbobjects,    coverage:1944/1944, spearmanr:0.392, p:0.000
-testing compoundnouns,  coverage:1944/1944, spearmanr:0.496, p:0.000
-testing all,            coverage:5742/5832, spearmanr:0.449, p:0.000
+Simlex,    coverage:726/999,   spearmanr:0.140, p:0.000
+MEN (sim), coverage:1544/3000, spearmanr:0.628, p:0.000
+WS353 sim, coverage:152/203,   spearmanr:0.615, p:0.000
+WS353 rel, coverage:200/251,   spearmanr:0.564, p:0.000
+relpron test,           coverage:19152/323761, MAP:0.101
+testing adjectivenouns, coverage:1836/1944, spearmanr:0.420, p:0.000
+testing verbobjects,    coverage:1836/1944, spearmanr:0.338, p:0.000
+testing compoundnouns,  coverage:1782/1944, spearmanr:0.487, p:0.000
+testing all,            coverage:5454/5832, spearmanr:0.432, p:0.000
 ```
 ```python
 space.extract_knn('car', n_nbrs=10)

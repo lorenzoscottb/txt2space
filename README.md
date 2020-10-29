@@ -73,6 +73,7 @@ space.extract_knn('car', n_nbrs=10)
  ('engine', 0.32823398561412326),
  ('automobile', 0.32311784173446095)]
 ```
+For visualisation, if pick_random is passed as False, the first n items will be selected for the reduction of the space.
 ```python
 sapce.plot_space(method='tsne', word_count=1000, pick_random=True, size=(50, 50))
 ```

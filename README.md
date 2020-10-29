@@ -1,21 +1,22 @@
 # Txt2Space
 
-Load, explore and run basic operation on continuous (semantic) spaces saved in the txt format
+This library allows you to load (static) vector spaces, saved in .txt format, and run multiple qualitative and quantitative investigaitons. 
+Tests includes word similairty/relatednes benchmarks, as well visualisations analysis of the spaces. 
 
 Some supported functions and test: 
 - cosine similarity
 - knn extraction
 - space visualization (through PCA or [t-sne](https://lvdmaaten.github.io/tsne/))
 
-word-word similarity:
+word-word tasks:
 - [SimLex-999](https://fh295.github.io/simlex.html)
 - [MEN](https://staff.fnwi.uva.nl/e.bruni/MEN)
 - [WordSim353](http://alfonseca.org/eng/research/wordsim353.html)
 
-Phrase composition 
+Composition based tasks
 - [Relpron](https://www.aclweb.org/anthology/J16-4004.pdf)
 - [Mitchell & Lapata](https://onlinelibrary.wiley.com/doi/full/10.1111/j.1551-6709.2010.01106.x) 2010 test 
-
+- [Big BiRD](http://saifmohammad.com/WebPages/BiRD.html)
 
 ## Basic instructions 
 
@@ -36,7 +37,9 @@ txt_space = 'path/to/space.txt'
 space = Space()
 space.txt2space(txt_space, en_remove=True)
 ```
-Alternatively, if the first line of the file contains space informations (#tokens, #dimensions)
+The en_remove argument, if True, will remove the prefix from words label during uploading. 
+
+If the first line of the file contains space's informations (i.e. #tokens, #features), passsing the dim_in_file arguments as True will automatically update the information for upload. 
 
 ```python
 space = Space()

@@ -46,6 +46,7 @@ space = Space()
 space.txt2space(txt_space, dim_in_file=True)
 space.run_tests(relpron_ds='dev', mix_gr_rel=True)
 ```
+Tasks can be run invidually, or collectively, as shown below. For each mode, the retunr_results argumet will allow to store correlation variables (i.e correlation value, p value). Coverage indicates how many items from the origianl datasets have been tested. If even a single word from an item is missing, the all item will be ignored for the evaluaiton. 
 ```
 Simlex,    coverage:726/999,   spearmanr:0.140, p:0.000
 MEN (sim), coverage:1544/3000, spearmanr:0.628, p:0.000

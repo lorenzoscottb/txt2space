@@ -47,15 +47,21 @@ space.run_tests(relpron_ds='dev', mix_gr_rel=True)
 ```
 Tasks can be run invidually, or collectively, as shown below. For each mode, the retunr_results argumet will allow to store correlation variables (i.e correlation value, p value). Coverage indicates how many items from the origianl datasets have been tested. If even a single word from an item is missing, the all item will be ignored for the evaluaiton. 
 ```
-Simlex,    coverage:726/999,   spearmanr:0.140, p:0.000
-MEN (sim), coverage:1544/3000, spearmanr:0.628, p:0.000
-WS353 sim, coverage:152/203,   spearmanr:0.615, p:0.000
-WS353 rel, coverage:200/251,   spearmanr:0.564, p:0.000
-relpron test,           coverage:19152/323761, MAP:0.101
-testing adjectivenouns, coverage:1836/1944, spearmanr:0.420, p:0.000
-testing verbobjects,    coverage:1836/1944, spearmanr:0.338, p:0.000
-testing compoundnouns,  coverage:1782/1944, spearmanr:0.487, p:0.000
-testing all,            coverage:5454/5832, spearmanr:0.432, p:0.000
+Word similarity
+Simlex,    coverage:998/999,   spearmanr:0.298, p:0.000
+MEN (sim), coverage:3000/3000, spearmanr:0.614, p:0.000
+WS353 sim, coverage:196/203,   spearmanr:0.702, p:0.000
+WS353 rel, coverage:237/251,   spearmanr:0.520, p:0.000
+
+Composition tests
+relpron dev,            coverage:33150/33670, MAP:0.319
+ML10 adjectivenouns, coverage:1944/1944, spearmanr:0.461, p:0.000
+ML10 verbobjects,    coverage:1944/1944, spearmanr:0.377, p:0.000
+ML10 compoundnouns,  coverage:1944/1944, spearmanr:0.434, p:0.000
+ML10 all,            coverage:5832/5832, spearmanr:0.433, p:0.000
+BiRD, amod, coverage:583/594, spearmanr:0.590 p:0.000
+BiRD, nmod, coverage:2708/2751, spearmanr:0.566 p:0.000
+BiRD, full, coverage:3291/3345, spearmanr:0.569 p:0.000
 ```
 ```python
 space.extract_knn('car', n_nbrs=10)

@@ -14,6 +14,8 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import seaborn as sns
+import sys
+import os
 
 class Space():
 
@@ -216,16 +218,19 @@ class Space():
 
         return _plot_with_labels(low_dim_embs, labels, path, size)
 
-    def relpron_evaluation(self, dataset='test', mix_gr_rel=True, retunr_result=False, collectretunr_result=False):
+    def relpron_evaluation(self, dataset='test', mix_gr_rel=True, return_result=False):
         if mix_gr_rel:
-            self.relpron_mix_gr_evaluation(dataset=dataset, retunr_result=retunr_result)
+            r_ss = self.relpron_mix_gr_evaluation(dataset=dataset, return_result=return_result)
         else:
-            self.relpron_sep_gr_evaluation(dataset=dataset, retunr_result=retunr_result)
+            r_ss = self.relpron_sep_gr_evaluation(dataset=dataset, return_result=return_result)
 
-    def relpron_sep_gr_evaluation(self, dataset='test', collect_es=False, retunr_result=False): #test, dev, all 
+        if return_result:
+            return r_ss
+
+    def relpron_sep_gr_evaluation(self, dataset='test', return_result=False): #test, dev, all 
 
         dev_or_test = dataset
-        goldfile = 'tests/relpron.'+dev_or_test+'.txt'
+        goldfile = '/tests/RELPRON/relpron.'+dev_or_test+'.txt'
         dataset = pd.read_csv(goldfile, header=None, sep=':', names=['terms', 'props'], engine='python')
         termxprp = {}
         flc = 0
@@ -264,135 +269,146 @@ class Space():
         for t in termxprp.keys():
             tc = termxprp[t]['cnt']
             apk = 0
-            for c, e in enumerate(termxprp[t]['tag']):
+            for k, e in enumerate(termxprp[t]['tag']):
                 llc += 1
-                apk += (sum(termxprp[t]['tag'][:c])/(c+1))*e
+                apk += (sum(termxprp[t]['tag'][:k+1])/(k+1))*e
             ap.append(apk/tc)
         r_map = sum(ap)/len(ap)
 
-        if retunr_result:
+        if return_result:
             return r_map        
         print('relpron {:15} coverage:{}/{}, MAP:{:.3f}'.format(dev_or_test+',', llc, flc, r_map))
 
-    def relpron_mix_gr_evaluation(self, dataset='test', retunr_result=False): #test, dev, all 
+    def relpron_mix_gr_evaluation(self, dataset='test', return_result=False, prnt_ex=False): #test, dev, all 
 
-        dev_or_test = 'test'
-        goldfile = 'tests/relpron.'+dev_or_test+'.txt'
+        dev_or_test = dataset
+        goldfile = '/tests/relpron.'+dev_or_test+'.txt'
         dataset = pd.read_csv(goldfile, header=None, sep=':', names=['terms', 'props'], engine='python')
-        termxprp = {}
-        flc = 0 #full lenght counf
-        llc = 0 #local lenght counf
+        term_set = {} # term:term_count
+        for t in dataset.terms:
+            term_set[t.split()[1].split('_')[0]]=term_set.get(t.split()[1].split('_')[0],0)+1 
+        term_data = {}
+        fll_cnt = 0
+        lcl_cnt = 0
 
-        defs = []   # definitions: term+proposition
+        defs = []   # definitions
         for line in open(goldfile):
             if line == 'SBJ friction: phenomenon that prevent slipping': 
                 line = 'friction: phenomenon that prevent slip'
             defs.append(line.split(' ', 1)[1].replace('\n', ''))
 
-        for tr in dataset.terms:
-            trm_v = {}
-            trm_c = 0
-            ttt = tr.split()[1]
+        for tr in term_set:
+            prp_rnk = {} # property_rank = {prptr:cs(trm,prp)}
+            clctd_trm = 0 # # of corrected trm:pr retrived
             for pr in dataset.props:
-                flc += 1
+                fll_cnt += 1
                 try: #tg = 1 if tr+':'+pr in defs else 0
-                    p = ' '.join([po.split('_')[0] for po in pr.split()])
-                    vp = self.vector(p.split()[0])+self.vector(p.split()[2])+self.vector(p.split()[3])
-                    sim = self.cosine_similarity(ttt.split('_')[0], vp)
-                    trm_v.update({pr:sim})
-                    trm_c += 1 if ttt+':'+pr in defs else 0
+                    splt_pr = [atm.split('_')[0] for atm in pr.split()]
+                    pr_vec = self.vector(splt_pr[0])+self.vector(splt_pr[2])+self.vector(splt_pr[3])
+                    s_sim = self.cosine_similarity(tr, pr_vec)
+                    prp_rnk.update({pr:s_sim})
+                    clctd_trm += 1 if tr+'_N:'+pr in defs else 0
                 except Exception as e:
                     # print(e)
                     None
-            if trm_c == 0:
+            if clctd_trm == 0:
                 continue
-            termxprp[ttt] = {}
-            trm_v = sorted(trm_v.items(), key=lambda x: x[1], reverse=True)
-            trm_v = [i[0] for i in trm_v] # sort by c.s.
-            termxprp[ttt]['cnt'] = trm_c
-            termxprp[ttt]['tag'] = [1 if ttt+':'+pr in defs else 0 for pr in trm_v]
-            termxprp[ttt]['props'] = trm_v
-        # rlpr_test_df = pd.DataFrame(rlpr_test)
-        ap = []
-        for t in termxprp.keys():
-            tc = termxprp[t]['cnt']
-            apk = 0
-            for c, e in enumerate(termxprp[t]['tag']):
-                llc += 1
-                apk += (sum(termxprp[t]['tag'][:c])/(c+1))*e
-            ap.append(apk/tc)
-        r_map = sum(ap)/len(ap)
+            term_data[tr] = {}
+            prp_rnk = sorted(prp_rnk.items(), key=lambda x: x[1], reverse=True)
+            trm_voc = [i[0] for i in prp_rnk] # sort by c.s.
+            term_data[tr]['cnt_cllct'] = clctd_trm
+            term_data[tr]['tag'] = [1 if tr+'_N:'+pr in defs else 0 for pr in trm_voc]
+            term_data[tr]['props'] = trm_voc
+            term_data[tr]['cnt_actl'] = term_set[tr]
 
-        if retunr_result:
-            return r_map        
-        print('relpron {:15} coverage:{}/{}, MAP:{:.3f}'.format(dev_or_test+',', llc, flc, r_map))
+        apts = [] # av. prec per terms
+        for t in term_data.keys():
+            trm_cnt = term_data[t]['cnt_cllct']
+            apk = 0 # av prec. at k
+            for k, tag in enumerate(term_data[t]['tag']):
+                lcl_cnt += 1
+                apk += (sum(term_data[t]['tag'][:k+1])/(k+1))*tag
+            apts.append(apk/trm_cnt)
+        r_map = sum(apts)/len(apts)     
+        if return_result:
+            return r_map
 
-    def relpron_ES_mix_gr_evaluation(self, e_sp, o_sp, dep_sp, dataset='test', retunr_result=False): #test, dev, all 
+        print('relpron {:15} coverage:{}/{}, MAP:{:.3f}'.format(dev_or_test+',', lcl_cnt, fll_cnt, r_map))
 
-        dev_or_test = 'test'
-        goldfile = 'tests/relpron.'+dev_or_test+'.txt'
+    def relpron_ES_mix_gr_evaluation(self, e_sp, o_sp, d_sp, dataset='test', return_result=False): #test, dev, all 
+
+        dev_or_test = dataset
+        goldfile = '/tests/relpron.'+dev_or_test+'.txt'
         dataset = pd.read_csv(goldfile, header=None, sep=':', names=['terms', 'props'], engine='python')
-        termxprp = {}
-        flc = 0 #full lenght counf
-        llc = 0 #local lenght counf
+        term_set = {} # term:term_count
+        for t in dataset.terms:
+            term_set[t.split()[1].split('_')[0]]=term_set.get(t.split()[1].split('_')[0],0)+1 
+        term_data = {}
+        fll_cnt = 0
+        lcl_cnt = 0
 
-        defs = []   # definitions: term+proposition
+        defs = []   # definitions
         for line in open(goldfile):
             if line == 'SBJ friction: phenomenon that prevent slipping': 
                 line = 'friction: phenomenon that prevent slip'
             defs.append(line.split(' ', 1)[1].replace('\n', ''))
-
-        for tr in dataset.terms:
-            trm_s = {}
-            trm_e ={}
-            trm_c = 0
-            ttt = tr.split()[1]
+            
+        for tr in tqdm(term_set):
+            prp_s_rnk = {}
+            prp_e_rnk = {}
+            clctd_trm = 0 # # of corrected trm:pr retrived
             for pr in dataset.props:
-                flc += 1
+                fll_cnt += 1
                 try: #tg = 1 if tr+':'+pr in defs else 0
-                    p = ' '.join([po.split('_')[0] for po in pr.split()])
-                    vp = self.vector(p.split()[0])+self.vector(p.split()[2])+self.vector(p.split()[3])
-                    ss = self.cosine_similarity(ttt.split('_')[0], vp)
-                    es = relpron_es(ttt, pr, e_sp, o_sp, dep_sp)
-                    trm_s.update({pr:ss})
-                    trm_e.update({pr:es})
-                    trm_c += 1 if ttt+':'+pr in defs else 0
+                    splt_pr = [atm.split('_')[0] for atm in pr.split()]
+                    pr_vec = e_sp.vector(splt_pr[0])+e_sp.vector(splt_pr[2])+e_sp.vector(splt_pr[3])
+                    s_sim = e_sp.cosine_similarity(tr, pr_vec) # simple sum
+                    if d_sp is None:
+                        e_sim = relpron_w2v_es(tr, pr, e_sp, o_sp)
+                    else:
+                        e_sim = relpron_dm_es(tr, pr, e_sp, o_sp, d_sp)# enhenced sum 
+                    prp_s_rnk.update({pr:s_sim})
+                    prp_e_rnk.update({pr:e_sim})
+                    clctd_trm += 1 if tr+'_N:'+pr in defs else 0
                 except Exception as e:
                     # print(e)
                     None
-            if trm_c == 0:
+            if clctd_trm == 0:
                 continue
-            termxprp[ttt] = {}
-            trm_s = [i[0] for i in sorted(trm_s.items(), key=lambda x: x[1], reverse=True)]
-            trm_e = [i[0] for i in sorted(trm_e.items(), key=lambda x: x[1], reverse=True)]
-            termxprp[ttt]['cnt'] = trm_c
-            termxprp[ttt]['tag_s'] = [1 if ttt+':'+pr in defs else 0 for pr in trm_s]
-            termxprp[ttt]['tag_e'] = [1 if ttt+':'+pr in defs else 0 for pr in trm_e]
-            # termxprp[ttt]['propss'] = trm_ss
-        # rlpr_test_df = pd.DataFrame(rlpr_test)
+            term_data[tr] = {}
+            prp_s_rnk = [i[0] for i in sorted(prp_s_rnk.items(), key=lambda x: x[1], reverse=True)]
+            prp_e_rnk = [i[0] for i in sorted(prp_e_rnk.items(), key=lambda x: x[1], reverse=True)]
+            
+            term_data[tr]['cnt_cllct'] = clctd_trm
+            term_data[tr]['cnt_actl'] = term_set[tr]
+            term_data[tr]['tag_s'] = [1 if tr+'_N:'+pr in defs else 0 for pr in prp_s_rnk]
+            term_data[tr]['tag_e'] = [1 if tr+'_N:'+pr in defs else 0 for pr in prp_e_rnk]
+        #     term_data[tr]['props'] = trm_voc
+
+
         ap_s = []
         ap_e = []
-        for t in termxprp.keys():
-            tc = termxprp[t]['cnt']
+        for t in term_data.keys():
+            tc = term_data[t]['cnt_cllct']
             apk_s = 0
             apk_e = 0
-            for c, e in enumerate(termxprp[t]['tag_s']):
-                llc += 1
-                apk_s += (sum(termxprp[t]['tag_s'][:c])/(c+1))*e
-                apk_e += (sum(termxprp[t]['tag_e'][:c])/(c+1))*termxprp[t]['tag_e'][c]
+            for k, e in enumerate(term_data[t]['tag_s']):
+                lcl_cnt += 1
+                apk_s += (sum(term_data[t]['tag_s'][:k+1])/(k+1))*e
+                apk_e += (sum(term_data[t]['tag_e'][:k+1])/(k+1))*term_data[t]['tag_e'][k]
             ap_s.append(apk_s/tc)
             ap_e.append(apk_e/tc)
 
         r_map_s = sum(ap_s)/len(ap_s)
         r_map_e = sum(ap_e)/len(ap_e)
 
-        if retunr_result:
+        if return_result:
             return r_map_s, r_map_e        
-        print('relpron {:15} coverage:{}/{}, MAP:{:.3f}'.format(dev_or_test+',', llc, flc, r_map_s))
-        print('relpron {:15} coverage:{}/{}, MAP ES:{:.3f}'.format(dev_or_test+',', llc, flc, r_map_e))
+        print('relpron {:15} coverage:{}/{}, MAP:{:.3f}'.format(dev_or_test+',', lcl_cnt, fll_cnt, r_map_s))
+        print('relpron {:15} coverage:{}/{}, MAP ES:{:.3f}'.format(dev_or_test+',', lcl_cnt, fll_cnt, r_map_e))
 
-    def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False, retunr_result=False, 
-        print_ex=False, ml_10='tests/mitchell-lapata/ml_10.csv'):
+    def ml_10_evaluation(self, test_phrase='adjectivenouns', plus_en=False, plot=False, return_result=False, 
+        print_ex=False, ml_10='/tests/ml_10.csv'):
 
         df = pd.read_csv(ml_10)
         ml_values = []
@@ -417,16 +433,16 @@ class Space():
                     print(e)
 
         corr = spearmanr(ml_values, cs_values)
-        if retunr_result:
+        if return_result:
             return corr 
         if type(test_phrase) == list: test_phrase = 'all'
-        print('testing {:15} coverage:{}/{}, spearmanr:{:.3f}, p:{:.3f}'.format(test_phrase+',', c, test_values, 
+        print('ML10 {:15} coverage:{}/{}, spearmanr:{:.3f}, p:{:.3f}'.format(test_phrase+',', c, test_values, 
                                                                               corr[0], corr[1]))
         if plot:
             plt.scatter(ml_values,cs_values)
 
-    def ml_10_mx_trasnform(self, dep_sp, src_sp, test_phrase='adjectivenouns', retunr_result=False, plus_en=False, 
-                        print_ex=False, ml_10='tests/ml_10.csv',
+    def ml_10_mx_trasnform(self, dep_sp, src_sp, test_phrase='adjectivenouns', return_result=False, plus_en=False, 
+                        print_ex=False, ml_10='/tests/ml_10.csv',
                         transpose=False, plot=False,):
 
         df = pd.read_csv(ml_10)
@@ -434,7 +450,7 @@ class Space():
         cs_values = []
         c = 0
         dim = self.matrix_space.shape[1]
-        dep_ph_dict = {'adjectivenouns':'_amod', 'verbobjects':'_dobj', 'compoundnouns':'_nmod'}
+        dep_ph_dict = {'adjectivenouns':'amod', 'verbobjects':'dobj', 'compoundnouns':'nmod'}
         test_values = int(len(df.values)/3)
         if test_phrase == 'all':
             test_phrase = list(set(df['type']))
@@ -459,7 +475,7 @@ class Space():
                 if print_ex:
                     print(e)
         corr = spearmanr(ml_values, cs_values)
-        if retunr_result:
+        if return_result:
             return corr 
         if type(test_phrase) == list: test_phrase = 'all'
         else: test_phrase = dep_ph_dict[test_phrase]
@@ -470,8 +486,8 @@ class Space():
             import seaborn as sns
             plt.scatter(ml_values,cs_values)
 
-    def simlex_evaluation(self, distance='cosine', en=False, plot=False, retunr_result=False ,
-        print_ex=False, simlex='tests/SimLex-en.csv'):
+    def simlex_evaluation(self, distance='cosine', en=False, plot=False, return_result=False ,
+        print_ex=False, simlex='/tests/SimLex-en.csv'):
 
         df = pd.read_csv(simlex)
         sim_values = []
@@ -489,7 +505,7 @@ class Space():
                if print_ex:
                    print(ex)
         corr = spearmanr(sim_values, cs_values)
-        if retunr_result:
+        if return_result:
             return corr 
 
         print('Simlex,    coverage:{}/{},   spearmanr:{:.3f}, p:{:.3f}'.format(len(sim_values), len(df.values),
@@ -502,8 +518,8 @@ class Space():
             sns.set(style="whitegrid")
             plt.scatter(sim_values,cs_values)
 
-    def MEN_evaluation(self, distance='cosine', n=False, plot=False, retunr_result=False, 
-        print_ex=False, men='tests/MEN_dataset_natural_form_full.csv'):
+    def MEN_evaluation(self, distance='cosine', n=False, plot=False, return_result=False, 
+        print_ex=False, men='/tests/MEN_dataset_natural_form_full.csv'):
 
         df = pd.read_csv(men)
         sim_values = []
@@ -522,15 +538,14 @@ class Space():
                 if print_ex:
                     print(ex)
         corr = spearmanr(sim_values, cs_values)
-        if retunr_result:
+        if return_result:
             return corr 
 
         print('MEN (sim), coverage:{}/{}, spearmanr:{:.3f}, p:{:.3f}'.format(len(sim_values),len(df.values),
                                                                              corr[0], corr[1]))
 
-    def ws353_evaluation(self, datasets='sim', distance='cosine', retunr_result=False, print_ex=False):
+    def ws353_evaluation(self, datasets='sim', distance='cosine', return_result=False, print_ex=False):
 
-        ws353_ag = 'tests/wordsim353_sim_rel/wordsim353_agreed.csv'
         ws353_gs_sim = 'tests/wordsim_similarity_goldstandard.csv'
         ws353_gs_rel = 'tests/wordsim_relatedness_goldstandard.csv'
 
@@ -557,53 +572,101 @@ class Space():
                 if print_ex:
                     print(ex)
         corr = spearmanr(ws_values, cs_values)
-        if retunr_result:
+        if return_result:
             return corr 
 
         print('WS353 {}, coverage:{}/{},   spearmanr:{:.3f}, p:{:.3f}'.format(str(datasets), len(ws_values), 
                                                                               len(ws_df.values), corr[0], corr[1]))
 
-    def ml_eval(self,retunr_results=False):
-        a = self.ml_10_evaluation('adjectivenouns', retunr_result=retunr_results)
-        v = self.ml_10_evaluation('verbobjects', retunr_result=retunr_results)
-        c = self.ml_10_evaluation('compoundnouns', retunr_result=retunr_results)
-        l = self.ml_10_evaluation('all', retunr_result=retunr_results)    
+        
+    def bird_test(self, tst_ph='full', rel_inv='', print_ex=False,
+                  brd_dir="tests/BiRD.csv"):
 
-        if retunr_results:
+        bird = pd.read_csv(brd_dir)
+        brd_values = []
+        cs_values = []
+        c, ttl = 0, 0
+        dep_ph_dict = {'n-n':'nmod', 'a-n':'amod'}
+        dim = self.matrix_space.shape[1]
+
+        for index, e in enumerate(bird.values):
+            if e[-1] != tst_ph and tst_ph != 'full':
+                continue
+            ttl +=1
+            try:
+
+                t11, t12 = e[1].split()
+                c_1  = self.vector(t12) + self.vector(t11)
+
+                if e[3] == "bigram":
+                    t21, t22 = e[2].split()
+                    c_2  = self.vector(t22) + self.vector(t21)    
+                else: 
+                    c_2 = self.vector(e[2]) 
+
+                cs_values.append(self.cosine_similarity(c_1, c_2))
+                brd_values.append(float(e[-2]))
+                c += 1
+
+            except Exception as e:
+                if print_ex:
+                    print(e)
+
+        corr = spearmanr(brd_values, cs_values)
+        tst_phs = dep_ph_dict[tst_ph] if tst_ph != 'full' else 'full' 
+        print('BiRD, {:4}, coverage:{}/{}, spearmanr:{:.3f} p:{:.3f}'.format(tst_phs, 
+                                                                             c, ttl, 
+                                                                             corr[0],
+                                                                             corr[1]))  
+    
+    def brd_eval(self, print_ex=False):
+        for tp in ["a-n","n-n","full"]: 
+            self.bird_test(tst_ph=tp, print_ex=print_ex)
+    
+    def ml_eval(self,return_result=False):
+        a = self.ml_10_evaluation('adjectivenouns', return_result=return_result)
+        v = self.ml_10_evaluation('verbobjects', return_result=return_result)
+        c = self.ml_10_evaluation('compoundnouns', return_result=return_result)
+        l = self.ml_10_evaluation('all', return_result=return_result)    
+
+        if return_result:
             return a,v,c,l
 
-    def ml_full_eval(self, dep_sp, src_sp, retunr_results=False, transpose=False):
-        self.ml_10_evaluation(test_phrase='all', retunr_result=retunr_results)
+    def ml_full_eval(self, dep_sp, src_sp, return_result=False, transpose=False):
+        self.ml_10_evaluation(test_phrase='all', return_result=return_result)
         print('\n')
         self.ml_10_evaluation(test_phrase='adjectivenouns')
-        self.ml_10_mx_trasnform(dep_sp, src_sp, test_phrase='adjectivenouns',transpose=transpose, retunr_result=retunr_results)
+        self.ml_10_mx_trasnform(dep_sp, src_sp, test_phrase='adjectivenouns',transpose=transpose, return_result=return_result)
         print('\n')
-        self.ml_10_evaluation(test_phrase='verbobjects', retunr_result=retunr_results)
-        self.ml_10_mx_trasnform(dep_sp, src_sp, test_phrase='verbobjects', transpose=transpose, retunr_result=retunr_results)
+        self.ml_10_evaluation(test_phrase='verbobjects', return_result=return_result)
+        self.ml_10_mx_trasnform(dep_sp, src_sp, test_phrase='verbobjects', transpose=transpose, return_result=return_result)
         print('\n')
-        self.ml_10_evaluation(test_phrase='compoundnouns', retunr_result=retunr_results)
-        self.ml_10_mx_trasnform(dep_sp, src_sp, test_phrase='compoundnouns', transpose=transpose, retunr_result=retunr_results)
+        self.ml_10_evaluation(test_phrase='compoundnouns', return_result=return_result)
+        self.ml_10_mx_trasnform(dep_sp, src_sp, test_phrase='compoundnouns', transpose=transpose, return_result=return_result)
 
-    def wordsim_evaluations(self, retunr_results=False):
-        s = self.simlex_evaluation(retunr_result=retunr_results)
-        m = self.MEN_evaluation(retunr_result=retunr_results)
-        ws = self.ws353_evaluation(datasets='sim', retunr_result=retunr_results)
-        wr = self.ws353_evaluation(datasets='rel', retunr_result=retunr_results)
+    def wordsim_evaluations(self, return_result=False):
+        s = self.simlex_evaluation(return_result=return_result)
+        m = self.MEN_evaluation(return_result=return_result)
+        ws = self.ws353_evaluation(datasets='sim', return_result=return_result)
+        wr = self.ws353_evaluation(datasets='rel', return_result=return_result)
 
-        if retunr_results:
+        if return_result:
             return s,m,ws,wr
     
-    def run_tests(self, relpron_ds='test', mix_gr_rel=True, collect_es=False, retunr_results=False):
-        if retunr_results:
-            s,m,ws,wr = self.wordsim_evaluations(retunr_results=retunr_results)
-            a,v,c,l = self.ml_eval(retunr_results=retunr_results)
-            r = self.relpron_evaluation(dataset=relpron_ds, mix_gr_rel=mix_gr_rel, collect_es=collect_es,
-                                        retunr_results=retunr_results)
-            return s,m,ws,wr,a,v,c,l
+    def run_tests(self, relpron_ds, mix_gr_rel=True, return_result=False):
+        if return_result:
+            s,m,ws,wr = self.wordsim_evaluations(return_result=return_result)
+            a,v,c,l = self.ml_eval(return_result=return_result)
+            r = self.relpron_evaluation(dataset=relpron_ds, mix_gr_rel=mix_gr_rel,
+                                        return_result=return_result)
+            return s,m,ws,wr,[r],a,v,c,l
         else:
+            print("Word similarity")
             self.wordsim_evaluations()
+            print("\nComposition tests")
             self.relpron_evaluation(dataset=relpron_ds, mix_gr_rel=mix_gr_rel)
-            self.ml_eval()            
+            self.ml_eval()
+            self.brd_eval(print_ex=False)
 
 def _plot_with_labels(low_dim_embs, labels, path, size):
 
@@ -634,7 +697,7 @@ def hyper_glv_dist(x,y):
     return np.power(np.cosh(1 + lambda_vec(y)*lambda_vec(x)*np.power(LA.norm(x-y, 2),2)/2), -1)
 
 
-def relpron_es(trgt, pr, e_sp, o_sp, d_sp):
+def relpron_dm_es(trgt, pr, e_sp, o_sp, d_sp):
 
     """
     DM paper eneched sum.; E: embeddings space; O: output space; T dep space; 
@@ -643,14 +706,13 @@ def relpron_es(trgt, pr, e_sp, o_sp, d_sp):
     cos(T$_{nsubj}$O$_{t}$, T$_{nsubj}$O$_{a}$ + E$_{v}$ + T$_{dobj}$O$_{p}$)
 
     parameters
-    trgt: target (e.g. expert_N)
+    trgt: target (e.g. expert)
     pr: preposition (e.g. 'quality_N' that tail_N aid_V')
     E/e_sp: input space; O/o_sp: output space; T/d_sp dep space
     """
-
-    Et = e_sp.vector(trgt.split('_')[0]) 
-    ppp = pr.split()
     d = e_sp.vec_dim
+    Et = e_sp.vector(trgt) 
+    ppp = pr.split()
     Ea = e_sp.vector(ppp[0].split('_')[0])
 
     if "_V" in ppp[2]:
@@ -674,6 +736,44 @@ def relpron_es(trgt, pr, e_sp, o_sp, d_sp):
         TOp = d_sp.vector('dobj').reshape(d,d).dot(o_sp.vector(ppp[3].split('_')[0]))
     prp_2 = TOa+Ev+TOp
     cs_2= e_sp.cosine_similarity(TOt, prp_2)
+    ES = cs_1+cs_2
+
+    return ES
+
+def relpron_w2v_es(trgt, pr, e_sp, o_sp):
+    """
+    DM paper eneched sum.; E: embeddings space; O: output space; T dep space; 
+    target, verb, agent, patient
+    cos(E$_{t}$,  E$_{a}$ + O$_{v}$ +O$_{p}$)+cos(O$_{t}$,  O$_{a}$ + E$_{v}$ +O$_{p}$)
+
+    parameters
+    trgt: target (e.g. expert)
+    pr: preposition (e.g. 'quality_N' that tail_N aid_V')
+    E/e_sp: input space; O/o_sp: output space; T/d_sp dep space
+    """
+    Et = e_sp.vector(trgt) 
+    ppp = pr.split()
+    Ea = e_sp.vector(ppp[0].split('_')[0])
+
+    if "_V" in ppp[2]:
+        Ov = o_sp.vector(ppp[2].split('_')[0])
+        Op = o_sp.vector(ppp[3].split('_')[0])
+    else:
+        Ov = o_sp.vector(ppp[3].split('_')[0])
+        Op = o_sp.vector(ppp[3].split('_')[0])
+    prp_1 = Ea+Ov+Op
+    cs_1 = e_sp.cosine_similarity(Et, prp_1)
+
+    Ot = o_sp.vector(trgt.split('_')[0])
+    Oa = o_sp.vector(ppp[0].split('_')[0])
+    if "_V" in ppp[2]:
+        Ev = e_sp.vector(ppp[2].split('_')[0])
+        Op = o_sp.vector(ppp[3].split('_')[0])
+    else:
+        Ev = e_sp.vector(ppp[3].split('_')[0])
+        Op = o_sp.vector(ppp[3].split('_')[0])
+    prp_2 = Oa+Ev+Op
+    cs_2= e_sp.cosine_similarity(Ot, prp_2)
     ES = cs_1+cs_2
 
     return ES

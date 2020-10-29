@@ -1,7 +1,6 @@
 # Txt2Space
 
-This library allows you to load (static) vector spaces, saved in .txt format, and run multiple qualitative and quantitative investigaitons. 
-Tests includes word similairty/relatednes benchmarks, as well visualisations analysis of the spaces. 
+This library allows you to load (static) vector spaces, saved in .txt format, and run multiple qualitative and quantitative investigations. Tests include word similarity/relatedness benchmarks, as well as visualisations analysis of the spaces.
 
 Some supported functions and test: 
 - cosine similarity
